@@ -19,7 +19,7 @@ public class UserController {
 
     @GetMapping
     public List<User> findAll() {
-        return users;
+        return new ArrayList<>(users);
     }
 
     @PostMapping
