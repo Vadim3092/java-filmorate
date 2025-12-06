@@ -34,13 +34,14 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         Film film = filmStorage.findById(filmId);
-        userStorage.findById(userId); // проверяем, что пользователь существует
+        userStorage.findById(userId);
         film.getLikes().add(userId);
         filmStorage.update(film);
     }
 
     public void removeLike(Long filmId, Long userId) {
         Film film = filmStorage.findById(filmId);
+        userStorage.findById(userId);
         film.getLikes().remove(userId);
         filmStorage.update(film);
     }
