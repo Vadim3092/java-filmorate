@@ -93,7 +93,7 @@ public class FilmControllerTest {
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(badFilmJson))
-                .andExpect(status().isBadRequest()) // 400
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
     }
 }
