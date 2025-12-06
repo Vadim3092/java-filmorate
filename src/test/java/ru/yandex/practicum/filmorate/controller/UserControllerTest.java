@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -47,13 +49,17 @@ public class UserControllerTest {
         user.setLogin("getlogin");
         user.setBirthday(LocalDate.of(1995, 5, 5));
 
-        String response = mockMvc.perform(post("/users")
+        MvcResult result = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn();
 
-        mockMvc.perform(get("/users/1"))
+        String response = result.getResponse().getContentAsString();
+        JsonNode node = objectMapper.readTree(response);
+        long userId = node.get("id").asLong();
+
+        mockMvc.perform(get("/users/" + userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.login").value("getlogin"));
     }
@@ -65,28 +71,34 @@ public class UserControllerTest {
         user1.setLogin("user1");
         user1.setBirthday(LocalDate.of(1990, 1, 1));
 
+        MvcResult result1 = mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user1)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long userId1 = objectMapper.readTree(result1.getResponse().getContentAsString()).get("id").asLong();
+
         User user2 = new User();
         user2.setEmail("user2@test.ru");
         user2.setLogin("user2");
         user2.setBirthday(LocalDate.of(1992, 2, 2));
 
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(user1)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/users")
+        MvcResult result2 = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user2)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long userId2 = objectMapper.readTree(result2.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(put("/users/" + userId1 + "/friends/" + userId2))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(put("/users/1/friends/2"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/users/1/friends"))
+        mockMvc.perform(get("/users/" + userId1 + "/friends"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(2));
+                .andExpect(jsonPath("$[0].id").value(userId2));
     }
 }

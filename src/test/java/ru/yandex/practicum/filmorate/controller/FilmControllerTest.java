@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
@@ -43,27 +44,31 @@ public class FilmControllerTest {
     @Test
     public void testAddLike_shouldWork() throws Exception {
         String userJson = "{\"email\":\"likeuser@test.ru\",\"login\":\"likeuser\",\"birthday\":\"1990-01-01\"}";
-
-        mockMvc.perform(post("/users")
+        MvcResult userResult = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long userId = objectMapper.readTree(userResult.getResponse().getContentAsString()).get("id").asLong();
 
         String filmJson = "{\"name\":\"Фильм для лайка\",\"description\":\"Коротко\",\"releaseDate\":\"1995-12-28\",\"duration\":100}";
-
-        mockMvc.perform(post("/films")
+        MvcResult filmResult = mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(filmJson))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
 
-        mockMvc.perform(put("/films/1/like/1"))
+        long filmId = objectMapper.readTree(filmResult.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(put("/films/" + filmId + "/like/" + userId))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/films/popular?count=1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$[0].id").value(filmId));
     }
 
     @Test
