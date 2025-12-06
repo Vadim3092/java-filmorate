@@ -1,45 +1,84 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@SpringBootTest
+@AutoConfigureMockMvc
 public class FilmControllerTest {
 
-    private FilmController controller;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        controller = new FilmController();
-    }
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void emptyName() {
+    public void testCreateFilm_shouldReturnFilmWithId() throws Exception {
         Film film = new Film();
-        film.setName("");
-        film.setDescription("Описание");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
+        film.setName("Новый фильм");
+        film.setDescription("Описание фильма");
+        film.setReleaseDate(LocalDate.of(2020, 1, 1));
         film.setDuration(120);
 
-        assertThrows(ValidationException.class, () -> controller.create(film));
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("Новый фильм"));
     }
 
     @Test
-    void goodFilm() {
-        Film film = new Film();
-        film.setName("Матрица");
-        film.setDescription("Фильм о виртуальной реальности");
-        film.setReleaseDate(LocalDate.of(1999, 3, 31));
-        film.setDuration(136);
+    public void testAddLike_shouldWork() throws Exception {
+        String userJson = "{\"email\":\"likeuser@test.ru\",\"login\":\"likeuser\",\"birthday\":\"1990-01-01\"}";
+        MvcResult userResult = mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(userJson))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        Film result = controller.create(film);
+        long userId = objectMapper.readTree(userResult.getResponse().getContentAsString()).get("id").asLong();
 
-        assertEquals("Матрица", result.getName());
-        assertEquals(136, result.getDuration());
+        String filmJson = "{\"name\":\"Фильм для лайка\",\"description\":\"Коротко\",\"releaseDate\":\"1995-12-28\",\"duration\":100}";
+        MvcResult filmResult = mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(filmJson))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long filmId = objectMapper.readTree(filmResult.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(put("/films/" + filmId + "/like/" + userId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/films/popular?count=1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(filmId));
+    }
+
+    @Test
+    public void testInvalidFilm_shouldReturn400() throws Exception {
+        String badFilmJson = "{\"name\":\"\",\"description\":\"Без названия\",\"releaseDate\":\"2000-01-01\",\"duration\":90}";
+
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(badFilmJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
     }
 }
