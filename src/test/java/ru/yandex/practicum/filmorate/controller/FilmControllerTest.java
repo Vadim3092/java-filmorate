@@ -42,27 +42,14 @@ public class FilmControllerTest {
 
     @Test
     public void testAddLike_shouldWork() throws Exception {
-        var userJson = """
-                {
-                  "email": "likeuser@test.ru",
-                  "login": "likeuser",
-                  "birthday": "1990-01-01"
-                }
-                """;
+        String userJson = "{\"email\":\"likeuser@test.ru\",\"login\":\"likeuser\",\"birthday\":\"1990-01-01\"}";
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson))
                 .andExpect(status().isOk());
 
-        var filmJson = """
-                {
-                  "name": "Фильм для лайка",
-                  "description": "Коротко",
-                  "releaseDate": "1995-12-28",
-                  "duration": 100
-                }
-                """;
+        String filmJson = "{\"name\":\"Фильм для лайка\",\"description\":\"Коротко\",\"releaseDate\":\"1995-12-28\",\"duration\":100}";
 
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,14 +68,7 @@ public class FilmControllerTest {
 
     @Test
     public void testInvalidFilm_shouldReturn400() throws Exception {
-        var badFilmJson = """
-                {
-                  "name": "",
-                  "description": "Без названия",
-                  "releaseDate": "2000-01-01",
-                  "duration": 90
-                }
-                """;
+        String badFilmJson = "{\"name\":\"\",\"description\":\"Без названия\",\"releaseDate\":\"2000-01-01\",\"duration\":90}";
 
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
