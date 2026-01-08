@@ -105,7 +105,7 @@ public class FilmService {
         if (film.getMpaId() != null) {
             dto.setMpa(getMpaById(film.getMpaId()));
         }
-        
+
         Set<GenreDto> genres = new LinkedHashSet<>();
         if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
             List<Integer> sortedGenreIds = film.getGenreIds().stream()
