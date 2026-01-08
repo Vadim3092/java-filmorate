@@ -3,29 +3,27 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.dao.EmptyResultDataAccessException;
+import ru.yandex.practicum.filmorate.dto.GenreDto;
+import ru.yandex.practicum.filmorate.service.FilmService;
+
 import java.util.List;
-import java.util.Map;
 
 @RestController
+@RequestMapping("/genres")
 @RequiredArgsConstructor
 public class GenreController {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final FilmService filmService;
 
-    @GetMapping("/genres")
-    public List<Map<String, Object>> getAll() {
-        return jdbcTemplate.queryForList("SELECT id AS id, name AS name FROM genre");
+    @GetMapping
+    public List<GenreDto> getAll() {
+        return filmService.getAllGenres();
     }
 
-    @GetMapping("/genres/{id}")
-    public Map<String, Object> getById(@PathVariable int id) {
-        try {
-            return jdbcTemplate.queryForMap("SELECT id AS id, name AS name FROM genre WHERE id = ?", id);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Жанр не найден");
-        }
+    @GetMapping("/{id}")
+    public GenreDto getById(@PathVariable int id) {
+        return filmService.getGenreById(id);
     }
 }
