@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
@@ -88,12 +90,8 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendship (user_id, friend_id) VALUES (?, ?)";
-        try {
-            jdbcTemplate.update(sql, userId, friendId);
-        } catch (Exception e) {
-            // Игнорируем, если уже друзья
-        }
+        String sql = "MERGE INTO friendship (user_id, friend_id) KEY(user_id, friend_id) VALUES (?, ?)";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
