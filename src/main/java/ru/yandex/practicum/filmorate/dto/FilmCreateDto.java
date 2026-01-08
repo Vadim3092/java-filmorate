@@ -27,6 +27,8 @@ public class FilmCreateDto {
 
         if (mpa != null) {
             film.setMpaId(mpa.getId());
+        } else {
+            film.setMpaId(null);
         }
 
         if (genres != null && !genres.isEmpty()) {

@@ -6,13 +6,12 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.dto.MpaDto;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,11 +32,13 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+        validateMpaAndGenres(film);
         return filmStorage.save(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
+        validateMpaAndGenres(film);
         return filmStorage.update(film);
     }
 
@@ -71,7 +72,7 @@ public class FilmService {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
                     new GenreDto(rs.getInt("id"), rs.getString("name")), id);
         } catch (Exception e) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Жанр с id=" + id + " не найден");
+            throw new NotFoundException("Жанр с id=" + id + " не найден");
         }
     }
 
@@ -88,7 +89,7 @@ public class FilmService {
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
                     new MpaDto(rs.getInt("id"), rs.getString("name")), id);
         } catch (Exception e) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("MPA с id=" + id + " не найден");
+            throw new NotFoundException("MPA с id=" + id + " не найден");
         }
     }
 
@@ -104,10 +105,13 @@ public class FilmService {
         if (film.getMpaId() != null) {
             dto.setMpa(getMpaById(film.getMpaId()));
         }
-
-        Set<GenreDto> genres = new HashSet<>();
-        if (film.getGenreIds() != null) {
-            for (Integer genreId : film.getGenreIds()) {
+        
+        Set<GenreDto> genres = new LinkedHashSet<>();
+        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
+            List<Integer> sortedGenreIds = film.getGenreIds().stream()
+                    .sorted()
+                    .collect(Collectors.toList());
+            for (Integer genreId : sortedGenreIds) {
                 genres.add(getGenreById(genreId));
             }
         }
@@ -128,6 +132,26 @@ public class FilmService {
         }
         if (film.getDuration() <= 0) {
             throw new ru.yandex.practicum.filmorate.exception.ValidationException("Продолжительность фильма должна быть положительной");
+        }
+    }
+
+    private void validateMpaAndGenres(Film film) {
+        if (film.getMpaId() != null) {
+            try {
+                getMpaById(film.getMpaId());
+            } catch (NotFoundException e) {
+                throw new NotFoundException("MPA с id=" + film.getMpaId() + " не найден");
+            }
+        }
+
+        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
+            for (Integer genreId : film.getGenreIds()) {
+                try {
+                    getGenreById(genreId);
+                } catch (NotFoundException e) {
+                    throw new NotFoundException("Жанр с id=" + genreId + " не найден");
+                }
+            }
         }
     }
 }
