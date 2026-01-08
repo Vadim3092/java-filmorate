@@ -59,11 +59,14 @@ public class FilmController {
     }
 
     private FilmDto toDto(Film film) {
-        MpaDto mpa = jdbcTemplate.queryForObject(
-                "SELECT id AS id, name AS name FROM mpa WHERE id = ?",
-                (rs, rowNum) -> new MpaDto(rs.getInt("id"), rs.getString("name")),
-                film.getMpaId()
-        );
+        MpaDto mpa = null;
+        if (film.getMpaId() != null) {
+            mpa = jdbcTemplate.queryForObject(
+                    "SELECT id AS id, name AS name FROM mpa WHERE id = ?",
+                    (rs, rowNum) -> new MpaDto(rs.getInt("id"), rs.getString("name")),
+                    film.getMpaId()
+            );
+        }
 
         Set<GenreDto> genres = new HashSet<>();
         if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
