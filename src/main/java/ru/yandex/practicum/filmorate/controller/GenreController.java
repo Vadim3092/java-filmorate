@@ -1,28 +1,26 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/genres")
 @RequiredArgsConstructor
 public class GenreController {
 
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
-    @GetMapping
+    @GetMapping("/genres")
     public List<Map<String, Object>> getAll() {
-        return jdbcTemplate.queryForList("SELECT id, name FROM genre ORDER BY id");
+        return jdbcTemplate.queryForList("SELECT id AS id, name AS name FROM genre");
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/genres/{id}")
     public Map<String, Object> getById(@PathVariable int id) {
-        List<Map<String, Object>> list = jdbcTemplate.queryForList("SELECT id, name FROM genre WHERE id = ?", id);
-        if (list.isEmpty()) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Жанр не найден");
-        }
-        return list.get(0);
+        return jdbcTemplate.queryForMap("SELECT id AS id, name AS name FROM genre WHERE id = ?", id);
     }
 }

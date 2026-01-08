@@ -15,6 +15,18 @@ public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
 
+    private void validateUser(User user) {
+        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Электронная почта не может быть пустой и должна содержать символ @");
+        }
+        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Логин не может быть пустым и содержать пробелы");
+        }
+        if (user.getBirthday() != null && user.getBirthday().isAfter(java.time.LocalDate.now())) {
+            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Дата рождения не может быть в будущем");
+        }
+    }
+
     @Override
     public List<User> findAll() {
         return jdbcTemplate.query("SELECT * FROM users", this::mapRowToUser);
@@ -32,6 +44,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User save(User user) {
+        validateUser(user);
         String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 user.getEmail(),
@@ -56,6 +69,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User user) {
+        validateUser(user);
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 user.getEmail(),

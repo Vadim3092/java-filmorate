@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-
-import java.util.List;
+import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/films")
@@ -13,25 +14,26 @@ import java.util.List;
 public class FilmController {
 
     private final FilmService filmService;
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
-    public List<Film> findAll() {
-        return filmService.findAll();
+    public List<Map<String, Object>> findAll() {
+        return filmService.findAll().stream().map(this::toMap).toList();
     }
 
     @GetMapping("/{id}")
-    public Film findById(@PathVariable Long id) {
-        return filmService.findById(id);
+    public Map<String, Object> findById(@PathVariable Long id) {
+        return toMap(filmService.findById(id));
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
-        return filmService.create(film);
+    public Map<String, Object> create(@RequestBody Film film) {
+        return toMap(filmService.create(film));
     }
 
     @PutMapping
-    public Film update(@RequestBody Film film) {
-        return filmService.update(film);
+    public Map<String, Object> update(@RequestBody Film film) {
+        return toMap(filmService.update(film));
     }
 
     @PutMapping("/{id}/like/{userId}")
@@ -45,10 +47,41 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopular(@RequestParam(defaultValue = "10") int count) {
+    public List<Map<String, Object>> getPopular(@RequestParam(defaultValue = "10") int count) {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть больше 0");
         }
-        return filmService.getPopular(count);
+        return filmService.getPopular(count).stream().map(this::toMap).toList();
+    }
+
+    private Map<String, Object> toMap(Film film) {
+        Map<String, Object> filmMap = new HashMap<>();
+        filmMap.put("id", film.getId());
+        filmMap.put("name", film.getName());
+        filmMap.put("description", film.getDescription());
+        filmMap.put("releaseDate", film.getReleaseDate());
+        filmMap.put("duration", film.getDuration());
+        filmMap.put("likes", film.getLikes());
+
+        // mpa
+        Map<String, Object> mpa = jdbcTemplate.queryForMap(
+                "SELECT id AS id, name AS name FROM mpa WHERE id = ?",
+                film.getMpaId()
+        );
+        filmMap.put("mpa", mpa);
+
+        // genres
+        List<Map<String, Object>> genres = new ArrayList<>();
+        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
+            String ids = film.getGenreIds().stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            genres = jdbcTemplate.queryForList(
+                    "SELECT id AS id, name AS name FROM genre WHERE id IN (" + ids + ")"
+            );
+        }
+        filmMap.put("genres", genres);
+
+        return filmMap;
     }
 }
