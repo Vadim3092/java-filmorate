@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.dto.MpaDto;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -33,12 +34,18 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+
+        if (film.getMpaId() == null) {
+            throw new ValidationException("MPA не может быть null");
+        }
         validateMpaExists(film.getMpaId());
+
         if (film.getGenreIds() != null) {
             for (Integer genreId : film.getGenreIds()) {
                 validateGenreExists(genreId);
             }
         }
+
         return filmStorage.save(film);
     }
 
@@ -115,10 +122,12 @@ public class FilmService {
 
         if (film.getMpaId() != null) {
             dto.setMpa(getMpaById(film.getMpaId()));
+        } else {
+            dto.setMpa(null);
         }
 
         Set<GenreDto> genres = new HashSet<>();
-        if (film.getGenreIds() != null) {
+        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
             for (Integer genreId : film.getGenreIds()) {
                 genres.add(getGenreById(genreId));
             }

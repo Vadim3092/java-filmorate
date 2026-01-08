@@ -48,6 +48,7 @@ public class UserService {
     }
 
     public List<User> getFriends(Long userId) {
+        findById(userId);
         return userStorage.getFriends(userId);
     }
 

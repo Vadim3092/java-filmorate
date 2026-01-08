@@ -100,7 +100,7 @@ public class FilmDbStorage implements FilmStorage {
         try {
             jdbcTemplate.update(sql, filmId, userId);
         } catch (Exception e) {
-            // Игнорируем, если лайк уже есть
+
         }
     }
 
@@ -138,10 +138,10 @@ public class FilmDbStorage implements FilmStorage {
         film.setDescription(rs.getString("description"));
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getInt("duration"));
-        film.setMpaId(rs.getInt("mpa_id"));
-        if (rs.wasNull()) {
-            film.setMpaId(null);
-        }
+
+        Integer mpaId = rs.getInt("mpa_id");
+        film.setMpaId(rs.wasNull() ? null : mpaId);
+
         return film;
     }
 }
