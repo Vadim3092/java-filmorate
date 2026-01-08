@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.dto.MpaDto;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -34,39 +33,21 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
-
-        if (film.getMpaId() == null) {
-            throw new ValidationException("MPA не может быть null");
-        }
-        validateMpaExists(film.getMpaId());
-
-        if (film.getGenreIds() != null) {
-            for (Integer genreId : film.getGenreIds()) {
-                validateGenreExists(genreId);
-            }
-        }
-
         return filmStorage.save(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
-        validateMpaExists(film.getMpaId());
-        if (film.getGenreIds() != null) {
-            for (Integer genreId : film.getGenreIds()) {
-                validateGenreExists(genreId);
-            }
-        }
         return filmStorage.update(film);
     }
 
     public void addLike(Long filmId, Long userId) {
-        userStorage.findById(userId); // проверяем что пользователь существует
+        userStorage.findById(userId);
         filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
-        userStorage.findById(userId); // проверяем что пользователь существует
+        userStorage.findById(userId);
         filmStorage.removeLike(filmId, userId);
     }
 
@@ -122,12 +103,10 @@ public class FilmService {
 
         if (film.getMpaId() != null) {
             dto.setMpa(getMpaById(film.getMpaId()));
-        } else {
-            dto.setMpa(null);
         }
 
         Set<GenreDto> genres = new HashSet<>();
-        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
+        if (film.getGenreIds() != null) {
             for (Integer genreId : film.getGenreIds()) {
                 genres.add(getGenreById(genreId));
             }
@@ -149,22 +128,6 @@ public class FilmService {
         }
         if (film.getDuration() <= 0) {
             throw new ru.yandex.practicum.filmorate.exception.ValidationException("Продолжительность фильма должна быть положительной");
-        }
-    }
-
-    private void validateMpaExists(Integer mpaId) {
-        if (mpaId == null) return;
-        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM mpa WHERE id = ?", Integer.class, mpaId);
-        if (count == 0) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("MPA с id=" + mpaId + " не найден");
-        }
-    }
-
-    private void validateGenreExists(Integer genreId) {
-        if (genreId == null) return;
-        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM genre WHERE id = ?", Integer.class, genreId);
-        if (count == 0) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Жанр с id=" + genreId + " не найден");
         }
     }
 }
