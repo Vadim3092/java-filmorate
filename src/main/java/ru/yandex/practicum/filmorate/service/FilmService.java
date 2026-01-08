@@ -33,17 +33,13 @@ public class FilmService {
     }
 
     public void addLike(Long filmId, Long userId) {
-        Film film = filmStorage.findById(filmId);
         userStorage.findById(userId);
-        film.getLikes().add(userId);
-        filmStorage.update(film);
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
-        Film film = filmStorage.findById(filmId);
         userStorage.findById(userId);
-        film.getLikes().remove(userId);
-        filmStorage.update(film);
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopular(int count) {

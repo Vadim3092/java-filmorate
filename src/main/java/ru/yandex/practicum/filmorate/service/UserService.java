@@ -31,28 +31,19 @@ public class UserService {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
-        userStorage.update(user);
-        userStorage.update(friend);
+        userStorage.findById(userId);
+        userStorage.findById(friendId);
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
         User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
         user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
         userStorage.update(user);
-        userStorage.update(friend);
     }
 
     public List<User> getFriends(Long userId) {
-        User user = userStorage.findById(userId);
-        return user.getFriends().stream()
-                .map(userStorage::findById)
-                .collect(Collectors.toList());
+        return userStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {

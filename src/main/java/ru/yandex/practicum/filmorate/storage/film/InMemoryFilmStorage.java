@@ -13,7 +13,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-@Component
+/* Логику с "@Qualifier" понял,
+но решил сделать проще, просто удалил "@Сomponent"
+ */
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new ConcurrentHashMap<>();
@@ -59,6 +61,18 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NotFoundException("Фильм с id=" + id + " не найден");
         }
         films.remove(id);
+    }
+
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        Film film = findById(filmId);
+        film.getLikes().add(userId);
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        Film film = findById(filmId);
+        film.getLikes().remove(userId);
     }
 
     private void validateFilm(Film film) {
