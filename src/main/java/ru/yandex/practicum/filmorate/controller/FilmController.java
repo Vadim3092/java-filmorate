@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.dto.MpaDto;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -61,22 +62,31 @@ public class FilmController {
     private FilmDto toDto(Film film) {
         MpaDto mpa = null;
         if (film.getMpaId() != null) {
-            mpa = jdbcTemplate.queryForObject(
-                    "SELECT id AS id, name AS name FROM mpa WHERE id = ?",
-                    (rs, rowNum) -> new MpaDto(rs.getInt("id"), rs.getString("name")),
-                    film.getMpaId()
-            );
+            try {
+                mpa = jdbcTemplate.queryForObject(
+                        "SELECT id AS id, name AS name FROM mpa WHERE id = ?",
+                        (rs, rowNum) -> new MpaDto(rs.getInt("id"), rs.getString("name")),
+                        film.getMpaId()
+                );
+            } catch (EmptyResultDataAccessException e) {
+
+            }
         }
 
         Set<GenreDto> genres = new HashSet<>();
         if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
-            String ids = film.getGenreIds().stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(","));
-            genres = new HashSet<>(jdbcTemplate.query(
-                    "SELECT id AS id, name AS name FROM genre WHERE id IN (" + ids + ")",
-                    (rs, rowNum) -> new GenreDto(rs.getInt("id"), rs.getString("name"))
-            ));
+            for (Integer genreId : film.getGenreIds()) {
+                try {
+                    GenreDto g = jdbcTemplate.queryForObject(
+                            "SELECT id AS id, name AS name FROM genre WHERE id = ?",
+                            (rs, rowNum) -> new GenreDto(rs.getInt("id"), rs.getString("name")),
+                            genreId
+                    );
+                    genres.add(g);
+                } catch (EmptyResultDataAccessException e) {
+
+                }
+            }
         }
 
         FilmDto dto = new FilmDto();

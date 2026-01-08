@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.EmptyResultDataAccessException;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,10 @@ public class MpaController {
 
     @GetMapping("/mpa/{id}")
     public Map<String, Object> getById(@PathVariable int id) {
-        return jdbcTemplate.queryForMap("SELECT id AS id, name AS name FROM mpa WHERE id = ?", id);
+        try {
+            return jdbcTemplate.queryForMap("SELECT id AS id, name AS name FROM mpa WHERE id = ?", id);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("MPA не найден");
+        }
     }
 }
