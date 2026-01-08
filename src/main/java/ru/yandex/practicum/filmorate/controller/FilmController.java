@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
@@ -13,6 +14,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/films")
 @RequiredArgsConstructor
@@ -69,7 +71,7 @@ public class FilmController {
                         film.getMpaId()
                 );
             } catch (EmptyResultDataAccessException e) {
-
+                log.warn("Не найден рейтинг MPA с id = {}", film.getMpaId());
             }
         }
 
@@ -84,7 +86,7 @@ public class FilmController {
                     );
                     genres.add(g);
                 } catch (EmptyResultDataAccessException e) {
-
+                    log.warn("Не найден жанр с id = {}", genreId);
                 }
             }
         }
