@@ -30,14 +30,14 @@ public class FilmController {
     }
 
     @PostMapping
-    public FilmDto create(@RequestBody FilmCreateDto filmDto) {
-        Film film = filmDto.toFilm();
+    public FilmDto create(@RequestBody FilmCreateDto filmCreateDto) {
+        Film film = filmCreateDto.toFilm();
         return filmService.toDto(filmService.create(film));
     }
 
     @PutMapping
-    public FilmDto update(@RequestBody FilmCreateDto filmDto) {
-        Film film = filmDto.toFilm();
+    public FilmDto update(@RequestBody FilmCreateDto filmCreateDto) {
+        Film film = filmCreateDto.toFilm();
         return filmService.toDto(filmService.update(film));
     }
 
