@@ -44,11 +44,13 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         userStorage.findById(userId);
+        findById(filmId);
         filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
         userStorage.findById(userId);
+        findById(filmId);
         filmStorage.removeLike(filmId, userId);
     }
 
@@ -137,20 +139,12 @@ public class FilmService {
 
     private void validateMpaAndGenres(Film film) {
         if (film.getMpaId() != null) {
-            try {
-                getMpaById(film.getMpaId());
-            } catch (NotFoundException e) {
-                throw new NotFoundException("MPA с id=" + film.getMpaId() + " не найден");
-            }
+            getMpaById(film.getMpaId());
         }
 
         if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
             for (Integer genreId : film.getGenreIds()) {
-                try {
-                    getGenreById(genreId);
-                } catch (NotFoundException e) {
-                    throw new NotFoundException("Жанр с id=" + genreId + " не найден");
-                }
+                getGenreById(genreId);
             }
         }
     }
