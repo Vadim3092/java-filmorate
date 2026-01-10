@@ -68,10 +68,10 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(Long userId, Long otherId) {
         String sql = """
-            SELECT u.* FROM users u
-            INNER JOIN friendship f1 ON u.id = f1.friend_id AND f1.user_id = ?
-            INNER JOIN friendship f2 ON u.id = f2.friend_id AND f2.user_id = ?
-            """;
+                SELECT u.* FROM users u
+                INNER JOIN friendship f1 ON u.id = f1.friend_id AND f1.user_id = ?
+                INNER JOIN friendship f2 ON u.id = f2.friend_id AND f2.user_id = ?
+                """;
         return jdbcTemplate.query(sql, this::mapRowToUser, userId, otherId);
     }
 
