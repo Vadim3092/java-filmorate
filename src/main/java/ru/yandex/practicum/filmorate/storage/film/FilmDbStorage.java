@@ -29,8 +29,6 @@ public class FilmDbStorage implements FilmStorage {
                     "LEFT JOIN film_genres g ON f.id = g.film_id ";
 
     @Override
-
-
     public List<Film> findAll() {
         Map<Long, Film> filmMap = jdbcTemplate.query(FILM_SELECT_SQL, new FilmResultSetExtractor());
         loadAllLikes(new ArrayList<>(filmMap.values()));
@@ -181,11 +179,11 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getPopular(int count) {
         String sql = """
-                SELECT f.*, COUNT(l.user_id) as likes_count 
-                FROM films f 
-                LEFT JOIN likes l ON f.id = l.film_id 
-                GROUP BY f.id 
-                ORDER BY likes_count DESC, f.id 
+                SELECT f.*, COUNT(l.user_id) as likes_count
+                FROM films f
+                LEFT JOIN likes l ON f.id = l.film_id
+                GROUP BY f.id
+                ORDER BY likes_count DESC, f.id
                 LIMIT ?
                 """;
 
