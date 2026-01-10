@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -111,7 +112,7 @@ public class FilmService {
 
             for (Integer id : film.getGenreIds()) {
                 if (!validIds.contains(id)) {
-                    throw new ValidationException("Жанр с id=" + id + " не существует");
+                    throw new NotFoundException("Жанр с id=" + id + " не существует");
                 }
             }
         }
