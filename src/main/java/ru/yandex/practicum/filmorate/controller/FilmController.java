@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmCreateDto;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -31,13 +32,13 @@ public class FilmController {
 
     @PostMapping
     public FilmDto create(@RequestBody FilmCreateDto filmCreateDto) {
-        Film film = filmCreateDto.toFilm();
+        Film film = FilmMapper.toFilm(filmCreateDto);
         return filmService.toDto(filmService.create(film));
     }
 
     @PutMapping
     public FilmDto update(@RequestBody FilmCreateDto filmCreateDto) {
-        Film film = filmCreateDto.toFilm();
+        Film film = FilmMapper.toFilm(filmCreateDto);
         return filmService.toDto(filmService.update(film));
     }
 

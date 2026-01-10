@@ -80,6 +80,15 @@ public class InMemoryUserStorage implements UserStorage {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        List<User> friends1 = getFriends(userId);
+        List<User> friends2 = getFriends(otherId);
+        return friends1.stream()
+                .filter(friends2::contains)
+                .collect(Collectors.toList());
+    }
+
     private void validateUser(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
             throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @");

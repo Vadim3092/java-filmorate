@@ -2,18 +2,19 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -26,9 +27,7 @@ public class UserDbStorage implements UserStorage {
     public List<User> findAll() {
         String sql = "SELECT * FROM users";
         List<User> users = jdbcTemplate.query(sql, this::mapRowToUser);
-        for (User user : users) {
-            loadFriends(user);
-        }
+        loadAllFriends(users);
         return users;
     }
 
@@ -39,8 +38,8 @@ public class UserDbStorage implements UserStorage {
             User user = jdbcTemplate.queryForObject(sql, this::mapRowToUser, id);
             loadFriends(user);
             return user;
-        } catch (Exception e) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Пользователь с id=" + id + " не найден");
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Пользователь с id=" + id + " не найден");
         }
     }
 
@@ -67,6 +66,16 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        String sql = """
+            SELECT u.* FROM users u
+            INNER JOIN friendship f1 ON u.id = f1.friend_id AND f1.user_id = ?
+            INNER JOIN friendship f2 ON u.id = f2.friend_id AND f2.user_id = ?
+            """;
+        return jdbcTemplate.query(sql, this::mapRowToUser, userId, otherId);
+    }
+
+    @Override
     public User update(User user) {
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
         int updated = jdbcTemplate.update(sql,
@@ -78,7 +87,7 @@ public class UserDbStorage implements UserStorage {
         );
 
         if (updated == 0) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Пользователь с id=" + user.getId() + " не найден");
+            throw new NotFoundException("Пользователь с id=" + user.getId() + " не найден");
         }
         return user;
     }
@@ -104,6 +113,28 @@ public class UserDbStorage implements UserStorage {
     public List<User> getFriends(Long userId) {
         String sql = "SELECT u.* FROM users u JOIN friendship f ON u.id = f.friend_id WHERE f.user_id = ?";
         return jdbcTemplate.query(sql, this::mapRowToUser, userId);
+    }
+
+    private void loadAllFriends(List<User> users) {
+        if (users.isEmpty()) return;
+
+        List<Long> userIds = users.stream().map(User::getId).collect(java.util.stream.Collectors.toList());
+        String placeholders = String.join(",", Collections.nCopies(userIds.size(), "?"));
+
+        String sql = String.format("SELECT user_id, friend_id FROM friendship WHERE user_id IN (%s)", placeholders);
+
+        Map<Long, Set<Long>> friendsMap = new HashMap<>();
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, userIds.toArray());
+
+        for (Map<String, Object> row : results) {
+            Long userId = ((Number) row.get("user_id")).longValue();
+            Long friendId = ((Number) row.get("friend_id")).longValue();
+            friendsMap.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
+        }
+
+        for (User user : users) {
+            user.setFriends(friendsMap.getOrDefault(user.getId(), new HashSet<>()));
+        }
     }
 
     private void loadFriends(User user) {

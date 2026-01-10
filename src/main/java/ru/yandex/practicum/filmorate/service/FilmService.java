@@ -1,14 +1,14 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dto.FilmDto;
-import ru.yandex.practicum.filmorate.dto.GenreDto;
-import ru.yandex.practicum.filmorate.dto.MpaDto;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.dto.*;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
@@ -20,7 +20,8 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final JdbcTemplate jdbcTemplate;
+    private final GenreStorage genreStorage;
+    private final MpaStorage mpaStorage;
 
     public List<Film> findAll() {
         return filmStorage.findAll();
@@ -55,96 +56,63 @@ public class FilmService {
     }
 
     public List<Film> getPopular(int count) {
-        return filmStorage.findAll().stream()
-                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
-                .limit(count)
-                .collect(Collectors.toList());
+        return filmStorage.getPopular(count);
     }
 
     public List<GenreDto> getAllGenres() {
-        String sql = "SELECT id, name FROM genre ORDER BY id";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
-                new GenreDto(rs.getInt("id"), rs.getString("name"))
-        );
+        return genreStorage.getAllGenres();
     }
 
     public GenreDto getGenreById(int id) {
-        String sql = "SELECT id, name FROM genre WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
-                    new GenreDto(rs.getInt("id"), rs.getString("name")), id);
-        } catch (Exception e) {
-            throw new NotFoundException("Жанр с id=" + id + " не найден");
-        }
+        return genreStorage.getGenreById(id);
     }
 
     public List<MpaDto> getAllMpa() {
-        String sql = "SELECT id, name FROM mpa ORDER BY id";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
-                new MpaDto(rs.getInt("id"), rs.getString("name"))
-        );
+        return mpaStorage.getAllMpa();
     }
 
     public MpaDto getMpaById(int id) {
-        String sql = "SELECT id, name FROM mpa WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
-                    new MpaDto(rs.getInt("id"), rs.getString("name")), id);
-        } catch (Exception e) {
-            throw new NotFoundException("MPA с id=" + id + " не найден");
-        }
+        return mpaStorage.getMpaById(id);
     }
 
     public FilmDto toDto(Film film) {
-        FilmDto dto = new FilmDto();
-        dto.setId(film.getId());
-        dto.setName(film.getName());
-        dto.setDescription(film.getDescription());
-        dto.setReleaseDate(film.getReleaseDate());
-        dto.setDuration(film.getDuration());
-        dto.setLikes(film.getLikes());
+        Map<Integer, MpaDto> mpaMap = getAllMpa().stream()
+                .collect(Collectors.toMap(MpaDto::getId, m -> m));
+        Map<Integer, GenreDto> genreMap = getAllGenres().stream()
+                .collect(Collectors.toMap(GenreDto::getId, g -> g));
 
-        if (film.getMpaId() != null) {
-            dto.setMpa(getMpaById(film.getMpaId()));
-        }
-
-        Set<GenreDto> genres = new LinkedHashSet<>();
-        if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
-            List<Integer> sortedGenreIds = film.getGenreIds().stream()
-                    .sorted()
-                    .collect(Collectors.toList());
-            for (Integer genreId : sortedGenreIds) {
-                genres.add(getGenreById(genreId));
-            }
-        }
-        dto.setGenres(genres);
-
-        return dto;
+        return FilmMapper.toDto(film, mpaMap, genreMap);
     }
 
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
-            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Название не может быть пустым");
+            throw new ValidationException("Название не может быть пустым");
         }
         if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Описание не может быть длиннее 200 символов");
+            throw new ValidationException("Описание не может быть длиннее 200 символов");
         }
         if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(java.time.LocalDate.of(1895, 12, 28))) {
-            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
         if (film.getDuration() <= 0) {
-            throw new ru.yandex.practicum.filmorate.exception.ValidationException("Продолжительность фильма должна быть положительной");
+            throw new ValidationException("Продолжительность фильма должна быть положительной");
         }
     }
 
     private void validateMpaAndGenres(Film film) {
         if (film.getMpaId() != null) {
-            getMpaById(film.getMpaId());
+            mpaStorage.getMpaById(film.getMpaId());
         }
 
         if (film.getGenreIds() != null && !film.getGenreIds().isEmpty()) {
-            for (Integer genreId : film.getGenreIds()) {
-                getGenreById(genreId);
+            Set<Integer> validIds = genreStorage.getAllGenres().stream()
+                    .map(GenreDto::getId)
+                    .collect(Collectors.toSet());
+
+            for (Integer id : film.getGenreIds()) {
+                if (!validIds.contains(id)) {
+                    throw new ValidationException("Жанр с id=" + id + " не существует");
+                }
             }
         }
     }
