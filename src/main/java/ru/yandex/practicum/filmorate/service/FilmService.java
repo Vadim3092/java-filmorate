@@ -24,21 +24,72 @@ public class FilmService {
     private final GenreStorage genreStorage;
     private final MpaStorage mpaStorage;
 
-    public List<Film> findAll() {
-        return filmStorage.findAll();
+    private FilmDto toDto(Film film, Map<Integer, MpaDto> mpaMap, Map<Integer, GenreDto> genreMap) {
+        return FilmMapper.toDto(film, mpaMap, genreMap);
     }
 
-    public Film findById(Long id) {
+    public List<FilmDto> findAll() {
+        List<Film> films = filmStorage.findAll();
+        return convertFilmsToDtos(films);
+    }
+
+    public FilmDto findById(Long id) {
+        Film film = filmStorage.findById(id);
+        return convertFilmToDto(film);
+    }
+
+    public FilmDto create(FilmCreateDto filmCreateDto) {
+        Film film = FilmMapper.toFilm(filmCreateDto);
+        validateFilm(film);
+        validateMpaAndGenres(film);
+        Film savedFilm = filmStorage.save(film);
+        return convertFilmToDto(savedFilm);
+    }
+
+    public FilmDto update(FilmCreateDto filmCreateDto) {
+        Film film = FilmMapper.toFilm(filmCreateDto);
+        validateFilm(film);
+        validateMpaAndGenres(film);
+        Film updatedFilm = filmStorage.update(film);
+        return convertFilmToDto(updatedFilm);
+    }
+
+    public List<FilmDto> getPopular(int count) {
+        List<Film> films = filmStorage.getPopular(count);
+        return convertFilmsToDtos(films);
+    }
+
+    private List<FilmDto> convertFilmsToDtos(List<Film> films) {
+        if (films.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, MpaDto> mpaMap = mpaStorage.getAllMpa().stream()
+                .collect(Collectors.toMap(MpaDto::getId, m -> m));
+        Map<Integer, GenreDto> genreMap = genreStorage.getAllGenres().stream()
+                .collect(Collectors.toMap(GenreDto::getId, g -> g));
+
+        return films.stream()
+                .map(film -> toDto(film, mpaMap, genreMap))
+                .collect(Collectors.toList());
+    }
+
+    private FilmDto convertFilmToDto(Film film) {
+        List<FilmDto> result = convertFilmsToDtos(List.of(film));
+        return result.get(0);
+    }
+
+    public Film findFilmModelById(Long id) {
         return filmStorage.findById(id);
     }
 
-    public Film create(Film film) {
+    public Film createFilmModel(Film film) {
         validateFilm(film);
         validateMpaAndGenres(film);
         return filmStorage.save(film);
     }
 
-    public Film update(Film film) {
+    public Film updateFilmModel(Film film) {
         validateFilm(film);
         validateMpaAndGenres(film);
         return filmStorage.update(film);
@@ -46,18 +97,14 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         userStorage.findById(userId);
-        findById(filmId);
+        filmStorage.findById(filmId);
         filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
         userStorage.findById(userId);
-        findById(filmId);
+        filmStorage.findById(filmId);
         filmStorage.removeLike(filmId, userId);
-    }
-
-    public List<Film> getPopular(int count) {
-        return filmStorage.getPopular(count);
     }
 
     public List<GenreDto> getAllGenres() {
@@ -74,15 +121,6 @@ public class FilmService {
 
     public MpaDto getMpaById(int id) {
         return mpaStorage.getMpaById(id);
-    }
-
-    public FilmDto toDto(Film film) {
-        Map<Integer, MpaDto> mpaMap = getAllMpa().stream()
-                .collect(Collectors.toMap(MpaDto::getId, m -> m));
-        Map<Integer, GenreDto> genreMap = getAllGenres().stream()
-                .collect(Collectors.toMap(GenreDto::getId, g -> g));
-
-        return FilmMapper.toDto(film, mpaMap, genreMap);
     }
 
     private void validateFilm(Film film) {

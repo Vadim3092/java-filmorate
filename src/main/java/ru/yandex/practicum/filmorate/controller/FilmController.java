@@ -4,12 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmCreateDto;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
-import ru.yandex.practicum.filmorate.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/films")
@@ -20,26 +17,22 @@ public class FilmController {
 
     @GetMapping
     public List<FilmDto> findAll() {
-        return filmService.findAll().stream()
-                .map(filmService::toDto)
-                .collect(Collectors.toList());
+        return filmService.findAll();
     }
 
     @GetMapping("/{id}")
     public FilmDto findById(@PathVariable Long id) {
-        return filmService.toDto(filmService.findById(id));
+        return filmService.findById(id);
     }
 
     @PostMapping
     public FilmDto create(@RequestBody FilmCreateDto filmCreateDto) {
-        Film film = FilmMapper.toFilm(filmCreateDto);
-        return filmService.toDto(filmService.create(film));
+        return filmService.create(filmCreateDto);
     }
 
     @PutMapping
     public FilmDto update(@RequestBody FilmCreateDto filmCreateDto) {
-        Film film = FilmMapper.toFilm(filmCreateDto);
-        return filmService.toDto(filmService.update(film));
+        return filmService.update(filmCreateDto);
     }
 
     @PutMapping("/{id}/like/{userId}")
@@ -57,8 +50,6 @@ public class FilmController {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть больше 0");
         }
-        return filmService.getPopular(count).stream()
-                .map(filmService::toDto)
-                .collect(Collectors.toList());
+        return filmService.getPopular(count);
     }
 }
