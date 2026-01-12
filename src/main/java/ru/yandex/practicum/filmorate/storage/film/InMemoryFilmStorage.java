@@ -1,19 +1,16 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
-@Component
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new ConcurrentHashMap<>();
@@ -35,7 +32,6 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film save(Film film) {
-        validateFilm(film);
         film.setId(nextId++);
         films.put(film.getId(), film);
         log.info("Сохранён фильм: {}", film.getName());
@@ -44,7 +40,6 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        validateFilm(film);
         if (!films.containsKey(film.getId())) {
             throw new NotFoundException("Фильм с id=" + film.getId() + " не найден");
         }
@@ -61,18 +56,23 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.remove(id);
     }
 
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название не может быть пустым");
-        }
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Описание не может быть длиннее 200 символов");
-        }
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
-        if (film.getDuration() <= 0) {
-            throw new ValidationException("Продолжительность фильма должна быть положительной");
-        }
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        Film film = findById(filmId);
+        film.getLikes().add(userId);
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        Film film = findById(filmId);
+        film.getLikes().remove(userId);
+    }
+
+    @Override
+    public List<Film> getPopular(int count) {
+        return films.values().stream()
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .limit(count)
+                .collect(Collectors.toList());
     }
 }

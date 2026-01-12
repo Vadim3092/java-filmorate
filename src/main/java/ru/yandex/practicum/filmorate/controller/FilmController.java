@@ -2,7 +2,8 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.dto.FilmCreateDto;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
@@ -15,23 +16,23 @@ public class FilmController {
     private final FilmService filmService;
 
     @GetMapping
-    public List<Film> findAll() {
+    public List<FilmDto> findAll() {
         return filmService.findAll();
     }
 
     @GetMapping("/{id}")
-    public Film findById(@PathVariable Long id) {
+    public FilmDto findById(@PathVariable Long id) {
         return filmService.findById(id);
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
-        return filmService.create(film);
+    public FilmDto create(@RequestBody FilmCreateDto filmCreateDto) {
+        return filmService.create(filmCreateDto);
     }
 
     @PutMapping
-    public Film update(@RequestBody Film film) {
-        return filmService.update(film);
+    public FilmDto update(@RequestBody FilmCreateDto filmCreateDto) {
+        return filmService.update(filmCreateDto);
     }
 
     @PutMapping("/{id}/like/{userId}")
@@ -45,7 +46,7 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopular(@RequestParam(defaultValue = "10") int count) {
+    public List<FilmDto> getPopular(@RequestParam(defaultValue = "10") int count) {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть больше 0");
         }
